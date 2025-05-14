@@ -11,7 +11,18 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+CLIENT_ID = os.getenv("CLIENT_ID")
+REDIRECT_URI = os.getenv("REDIRECT_URI")
 GUILD_ID = int(os.getenv("GUILD_ID"))
+
+# ✅ OAuth 인증 URL 생성
+OAUTH_URL = (
+    f"https://discord.com/api/oauth2/authorize"
+    f"?client_id={CLIENT_ID}"
+    f"&redirect_uri={REDIRECT_URI}"
+    f"&response_type=code"
+    f"&scope=identify+guilds.join"
+)
 
 USER_FILE = "authenticated_users.json"
 
@@ -35,7 +46,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 class StartView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
-        self.add_item(discord.ui.Button(label="✅ 인증하기", url=os.getenv("REDIRECT_URI"), style=discord.ButtonStyle.link))
+        self.add_item(discord.ui.Button(label="✅ 인증하기", url=OAUTH_URL, style=discord.ButtonStyle.link))
 
 @bot.event
 async def on_ready():
