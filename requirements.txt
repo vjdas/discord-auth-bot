@@ -1,4 +1,3 @@
-fastapi
+discord.py
 aiohttp
 python-dotenv
-uvicorn
